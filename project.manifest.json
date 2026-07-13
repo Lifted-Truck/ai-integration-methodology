@@ -1,0 +1,29 @@
+{
+  "schema": "project-manifest.0 (draft — kit v2 will formalize)",
+  "status": "PROVISIONAL — scaffolded 2026-07-13 (inferred from the doc); human to ratify at M0",
+  "survey": {
+    "what_is_it": "knowledge product / methodology — 'The Applied Epistemics of AI Integration', seed of a human-AI-integration consulting offering",
+    "architecture_rung": {
+      "choice": 1,
+      "menu": ["1: single thread", "2: thread + subagents/verifier", "3: organ fleet"],
+      "earned_by": "a single authored document + downstream materials; no parallelizable verifiable seams. A fresh-context critic may adversarially review claims (fitting, given the subject), but nothing here is a fleet."
+    },
+    "domain_core_llm_must_not_own": "the empirical claims and their sourcing, the truthfulness of case studies, and the epistemic integrity of the argument — the doc is ABOUT not laundering fluent AI output into fact, so it must not do that to itself. AI drafts and stress-tests; the human owns which claims stand and how they are sourced.",
+    "oracle_shape": {
+      "goldens": "invariants-only (doc-lint): anchor integrity, section numbering, citation-or-synthesis presence — outputs are prose, so no strict golden",
+      "ci": "single-version doc-lint; no code"
+    },
+    "second_implementation": false,
+    "consumers_and_providers": {
+      "consumes": [],
+      "consumed_by": ["autonomous (harvested DELEGATE-52 + failure taxonomy into research + a doctrine tenet)", "the user's consulting practice"],
+      "note": "sibling to autonomous, not a dependency; cross-references only"
+    },
+    "parallel_audit_thread": false,
+    "knowledge_loop_tags": ["failure-taxonomy", "latent-space-navigation", "engagement-model", "case-studies", "citation-integrity"],
+    "lifespan_autonomy": {
+      "lifespan": "long-lived (living methodology + consulting materials)",
+      "autonomy_tier": "human-authored; AI drafts and adversarially reviews, human ratifies every empirical claim; nothing published unattended"
+    }
+  }
+}

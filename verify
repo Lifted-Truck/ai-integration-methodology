@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# verify — doc-lint oracle for a knowledge product. Usage: ./verify fast|full|report
+# Contract: exit 0 = green, nonzero = red. Writes .harness/last-verify.json.
+set -uo pipefail
+cd "$(dirname "$0")"
+TARGET="${1:-fast}"; HARNESS_DIR=".harness"; mkdir -p "$HARNESS_DIR"
+
+record() {
+  local h; h=$(git rev-parse --short HEAD 2>/dev/null || echo no-git)
+  printf '{"target":"%s","exit":%d,"git":"%s","ts":"%s"}\n' \
+    "$1" "$2" "$h" "$(date -u +%FT%TZ)" > "$HARNESS_DIR/last-verify.json"
+  return "$2"
+}
+
+fast() {
+  # Doc-lint: structure present, section numbering clean, internal anchors resolve.
+  local ok=0
+  for f in methodology.md README.md ROADMAP.md CLAUDE.md project.manifest.json; do
+    [ -f "$f" ] || { echo "verify: missing $f" >&2; ok=1; }
+  done
+  python3 - <<'PY' || ok=1
+import re, sys
+doc = open("methodology.md").read()
+bad = 0
+# every ## Part I..VII present
+parts = re.findall(r'^## Part ([IVX]+):', doc, re.M)
+if len(parts) < 7:
+    print(f"verify: expected 7 Parts, found {len(parts)}: {parts}"); bad = 1
+# no duplicate numbered failure-mode headings (### N. )
+nums = re.findall(r'^### (\d+)\.', doc, re.M)
+if len(nums) != len(set(nums)):
+    print(f"verify: duplicate numbered headings: {nums}"); bad = 1
+# internal markdown anchors [..](#..) resolve to a heading slug
+headings = re.findall(r'^#{1,6}\s+(.*)$', doc, re.M)
+def slug(h): return re.sub(r'[^a-z0-9]+','-', h.lower()).strip('-')
+slugs = {slug(h) for h in headings}
+for label, anchor in re.findall(r'\[([^\]]+)\]\(#([^)]+)\)', doc):
+    if anchor not in slugs:
+        print(f"verify: broken internal anchor: #{anchor}"); bad = 1
+sys.exit(bad)
+PY
+  [ $ok -eq 0 ] && echo "verify[fast]: doc-lint clean (structure, numbering, anchors)"
+  return $ok
+}
+
+full() {
+  fast || return $?
+  # Citation-presence: sections making empirical claims should carry a source
+  # marker or an explicit synthesis marker. Advisory list (non-empty is a NOTE,
+  # not a hard fail at M1 — tighten to blocking once the doc-integrity pass runs).
+  python3 - <<'PY'
+import re
+doc = open("methodology.md").read()
+# crude heuristic: paragraphs citing a % or "study/research" without a nearby
+# marker word. Report count; do not fail (M1 will resolve/flag each).
+flags = 0
+for para in doc.split("\n\n"):
+    if re.search(r'\b\d+%|\bstudy\b|\bresearch\b|\bbenchmark\b', para, re.I):
+        if not re.search(r'DELEGATE-52|attributed|synthesis|flag|http', para, re.I):
+            flags += 1
+print(f"verify[full]: {flags} empirical paragraph(s) to confirm sourcing (M1 task; advisory)")
+PY
+  return 0
+}
+
+case "$TARGET" in
+  fast)   fast;  record fast  $? ;;
+  full)   full;  record full  $? ;;
+  report) cat "$HARNESS_DIR/last-verify.json" 2>/dev/null || { echo '{"target":null,"exit":null}'; exit 1; } ;;
+  *)      echo "usage: ./verify fast|full|report" >&2; exit 64 ;;
+esac
