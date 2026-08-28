@@ -5,12 +5,15 @@ set -uo pipefail
 cd "$(dirname "$0")"
 TARGET="${1:-fast}"; HARNESS_DIR=".harness"; mkdir -p "$HARNESS_DIR"
 
-record() {
-  local h; h=$(git rev-parse --short HEAD 2>/dev/null || echo no-git)
-  printf '{"target":"%s","exit":%d,"git":"%s","ts":"%s"}\n' \
-    "$1" "$2" "$h" "$(date -u +%FT%TZ)" > "$HARNESS_DIR/last-verify.json"
-  return "$2"
-}
+# Kit-owned gates (leak_gate, kit_integrity, record) are vendored, not sourced
+# from a shared copy: CI has no checkout of the standards repo. A missing .kit/
+# is a hard exit — a degraded run would report green while ungated.
+if [ -r .kit/kit-gates.sh ]; then
+  . .kit/kit-gates.sh
+else
+  echo "verify: .kit/kit-gates.sh missing - run kit_sync.py" >&2
+  exit 1
+fi
 
 fast() {
   # Doc-lint: structure present, section numbering clean, internal anchors resolve.
@@ -39,7 +42,9 @@ for label, anchor in re.findall(r'\[([^\]]+)\]\(#([^)]+)\)', doc):
         print(f"verify: broken internal anchor: #{anchor}"); bad = 1
 sys.exit(bad)
 PY
-  [ $ok -eq 0 ] && echo "verify[fast]: doc-lint clean (structure, numbering, anchors)"
+  kit_integrity || ok=1
+  leak_gate     || ok=1
+  [ $ok -eq 0 ] && echo "verify[fast]: doc-lint clean (structure, numbering, anchors); kit gates green"
   return $ok
 }
 
