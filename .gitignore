@@ -1,3 +1,7 @@
 .harness/
 .DS_Store
 .claude/settings.local.json
+
+# INTERNAL master document — client names, pricing, positioning. This repo is
+# PUBLIC; the master never ships. Derived client-facing materials do.
+methodology-master*.md
